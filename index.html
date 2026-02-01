@@ -13,11 +13,11 @@
             display: flex; justify-content: center; align-items: center;
             background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
             font-family: 'Arial', sans-serif; overflow: hidden;
-            touch-action: none; /* Prevents screen shaking/scrolling on mobile */
+            touch-action: none; /* Disables all browser gestures */
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.95); padding: 2rem;
+            background: white; padding: 2rem;
             border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             text-align: center; width: 85%; max-width: 320px; z-index: 10;
         }
@@ -30,26 +30,26 @@
         button {
             padding: 15px 25px; font-size: 1.1rem; font-weight: bold;
             border: none; border-radius: 15px; cursor: pointer;
-            touch-action: manipulation;
         }
 
-        #yes-btn { background: #4CAF50; color: white; }
+        #yes-btn { background: #4CAF50; color: white; position: relative; z-index: 5; }
 
         #no-btn {
             background: var(--pink); color: white;
-            position: absolute; transition: 0.15s cubic-bezier(0.2, 0, 0.2, 1);
-            left: 170px; /* Initial position next to YES */
+            position: absolute; z-index: 100;
+            transition: transform 0.1s ease-out;
+            left: 160px; /* Default desktop position */
         }
 
-        .footer { position: fixed; bottom: 15px; font-size: 0.8rem; color: var(--dark); opacity: 0.7; }
+        .footer { position: fixed; bottom: 15px; font-size: 0.8rem; color: var(--dark); font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <div id="ui">
-            <h1 id="header-text">Will you be my Valentine? ❤️</h1>
-            <div class="btn-container">
+            <h1 id="header">Will you be my Valentine? ❤️</h1>
+            <div class="btn-container" id="area">
                 <button id="yes-btn">YES</button>
                 <button id="no-btn">NO</button>
             </div>
@@ -65,64 +65,65 @@
     <script>
         const noBtn = document.getElementById('no-btn');
         const yesBtn = document.getElementById('yes-btn');
-        const header = document.getElementById('header-text');
+        const header = document.getElementById('header');
         
         let attempts = 0;
 
         function playSound(id) {
             const audio = document.getElementById(id);
-            audio.currentTime = 0;
-            audio.play().catch(() => {});
-        }
-
-        function triggerVibration(pattern) {
-            if (navigator.vibrate) {
-                navigator.vibrate(pattern);
+            if(audio) {
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
             }
         }
 
-        function moveNo(e) {
+        function moveNo() {
             if (attempts < 5) {
-                // Prevent the button from being clicked while it's moving
-                if (e) e.preventDefault();
+                // Calculation: Keep button inside viewport with 60px safety margin
+                const maxX = window.innerWidth - noBtn.offsetWidth - 60;
+                const maxY = window.innerHeight - noBtn.offsetHeight - 60;
 
-                // Get screen limits with safe margins
-                const margin = 50;
-                const maxX = window.innerWidth - noBtn.offsetWidth - margin;
-                const maxY = window.innerHeight - noBtn.offsetHeight - margin;
-
-                // Generate new position
-                const newX = Math.random() * maxX + (margin/2);
-                const newY = Math.random() * maxY + (margin/2);
+                const newX = Math.random() * maxX + 30;
+                const newY = Math.random() * maxY + 30;
 
                 noBtn.style.position = 'fixed';
                 noBtn.style.left = `${newX}px`;
                 noBtn.style.top = `${newY}px`;
 
                 playSound('s-boing');
-                triggerVibration(50);
+                if (navigator.vibrate) navigator.vibrate(60);
                 attempts++;
+                return true; // Moved successfully
             }
+            return false; // Done moving, can be clicked now
         }
 
-        // MOBILE: 'touchstart' is faster than click
-        noBtn.addEventListener('touchstart', moveNo);
-        
-        // DESKTOP: 'mouseover' for the chase
-        noBtn.addEventListener('mouseover', moveNo);
+        // --- MOBILE FIX: Intercept Touch Start ---
+        noBtn.addEventListener('touchstart', function(e) {
+            if (attempts < 5) {
+                e.preventDefault(); // Stop the "click" from ever happening
+                moveNo();
+            }
+        }, { passive: false });
 
-        // FINAL CLICK LOGIC
+        // --- DESKTOP FIX: Mouse Over ---
+        noBtn.addEventListener('mouseover', function(e) {
+            if (attempts < 5) {
+                moveNo();
+            }
+        });
+
+        // --- FINAL CLICK LOGIC ---
         noBtn.addEventListener('click', (e) => {
             if (attempts < 5) {
                 e.preventDefault();
                 moveNo();
             } else {
-                // Final Success State
                 header.innerHTML = "You caught it... but chose NO 💔";
                 noBtn.style.display = 'none';
                 yesBtn.style.display = 'none';
                 playSound('s-no');
-                triggerVibration([200, 100, 200]);
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             }
         });
 
@@ -131,12 +132,7 @@
             noBtn.style.display = 'none';
             yesBtn.style.display = 'none';
             playSound('s-yes');
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#ff4d6d', '#ffffff', '#ff85a1']
-            });
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         });
     </script>
 </body>
