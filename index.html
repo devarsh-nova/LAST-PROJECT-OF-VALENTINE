@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Valentine Prank</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --pink: #ff4d6d; --dark: #c9184a; }
+        
+        body {
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            font-family: 'Arial', sans-serif; overflow: hidden;
+            touch-action: none; /* Prevents screen shaking/scrolling on mobile */
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95); padding: 2rem;
+            border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center; width: 85%; max-width: 320px; z-index: 10;
+        }
+
+        .btn-container {
+            display: flex; justify-content: center; gap: 20px;
+            margin-top: 30px; height: 60px; position: relative;
+        }
+
+        button {
+            padding: 15px 25px; font-size: 1.1rem; font-weight: bold;
+            border: none; border-radius: 15px; cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        #yes-btn { background: #4CAF50; color: white; }
+
+        #no-btn {
+            background: var(--pink); color: white;
+            position: absolute; transition: 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+            left: 170px; /* Initial position next to YES */
+        }
+
+        .footer { position: fixed; bottom: 15px; font-size: 0.8rem; color: var(--dark); opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div id="ui">
+            <h1 id="header-text">Will you be my Valentine? ❤️</h1>
+            <div class="btn-container">
+                <button id="yes-btn">YES</button>
+                <button id="no-btn">NO</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">🧑‍💻 Created by Devarsh (admin)</div>
+
+    <audio id="s-yes" src="yes.mp3"></audio>
+    <audio id="s-no" src="no.mp3"></audio>
+    <audio id="s-boing" src="boing.mp3"></audio>
+
+    <script>
+        const noBtn = document.getElementById('no-btn');
+        const yesBtn = document.getElementById('yes-btn');
+        const header = document.getElementById('header-text');
+        
+        let attempts = 0;
+
+        function playSound(id) {
+            const audio = document.getElementById(id);
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+
+        function triggerVibration(pattern) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        function moveNo(e) {
+            if (attempts < 5) {
+                // Prevent the button from being clicked while it's moving
+                if (e) e.preventDefault();
+
+                // Get screen limits with safe margins
+                const margin = 50;
+                const maxX = window.innerWidth - noBtn.offsetWidth - margin;
+                const maxY = window.innerHeight - noBtn.offsetHeight - margin;
+
+                // Generate new position
+                const newX = Math.random() * maxX + (margin/2);
+                const newY = Math.random() * maxY + (margin/2);
+
+                noBtn.style.position = 'fixed';
+                noBtn.style.left = `${newX}px`;
+                noBtn.style.top = `${newY}px`;
+
+                playSound('s-boing');
+                triggerVibration(50);
+                attempts++;
+            }
+        }
+
+        // MOBILE: 'touchstart' is faster than click
+        noBtn.addEventListener('touchstart', moveNo);
+        
+        // DESKTOP: 'mouseover' for the chase
+        noBtn.addEventListener('mouseover', moveNo);
+
+        // FINAL CLICK LOGIC
+        noBtn.addEventListener('click', (e) => {
+            if (attempts < 5) {
+                e.preventDefault();
+                moveNo();
+            } else {
+                // Final Success State
+                header.innerHTML = "You caught it... but chose NO 💔";
+                noBtn.style.display = 'none';
+                yesBtn.style.display = 'none';
+                playSound('s-no');
+                triggerVibration([200, 100, 200]);
+            }
+        });
+
+        yesBtn.addEventListener('click', () => {
+            header.innerHTML = "YES! 💖✨";
+            noBtn.style.display = 'none';
+            yesBtn.style.display = 'none';
+            playSound('s-yes');
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#ff4d6d', '#ffffff', '#ff85a1']
+            });
+        });
+    </script>
+</body>
+</html>
